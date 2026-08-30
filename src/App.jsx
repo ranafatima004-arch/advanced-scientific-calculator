@@ -1,167 +1,139 @@
-import React, { useState } from 'react';
-import './App.css';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Calculator,
+  Clock3,
+  Delete,
+  History,
+  Keyboard,
+  Moon,
+  Sparkles,
+  X,
+} from 'lucide-react'
+import './App.css'
 
-function App() {
-  const [input, setInput] = useState("");
-  const [result, setResult] = useState("");
+const initialKeys = [
+  { label: 'sin', value: 'sin(', kind: 'function' },
+  { label: 'cos', value: 'cos(', kind: 'function' },
+  { label: 'tan', value: 'tan(', kind: 'function' },
+  { label: 'log', value: 'log(', kind: 'function' },
+  { label: 'ln', value: 'ln(', kind: 'function' },
+  { label: '√', value: 'sqrt(', kind: 'function' },
+  { label: 'xʸ', value: '^', kind: 'function' },
+  { label: 'x²', value: '^2', kind: 'function' },
+  { label: '%', value: '%', kind: 'function' },
+  { label: '(', value: '(', kind: 'function' },
+  { label: ')', value: ')', kind: 'function' },
+  { label: 'π', value: 'π', kind: 'constant' },
+  { label: 'e', value: 'e', kind: 'constant' },
+  { label: '7', value: '7', kind: 'number' },
+  { label: '8', value: '8', kind: 'number' },
+  { label: '9', value: '9', kind: 'number' },
+  { label: '÷', value: '/', kind: 'operator' },
+  { label: '4', value: '4', kind: 'number' },
+  { label: '5', value: '5', kind: 'number' },
+  { label: '6', value: '6', kind: 'number' },
+  { label: '×', value: '*', kind: 'operator' },
+  { label: '1', value: '1', kind: 'number' },
+  { label: '2', value: '2', kind: 'number' },
+  { label: '3', value: '3', kind: 'number' },
+  { label: '−', value: '-', kind: 'operator' },
+  { label: '0', value: '0', kind: 'number' },
+  { label: '.', value: '.', kind: 'number' },
+  { label: '+', value: '+', kind: 'operator' },
+]
 
-  const handleClick = (value) => {
-    setInput((prev) => prev + value);
-  };
-
-  const handleClear = () => {
-    setInput("");
-    setResult("");
-  };
-
-  const handleCalculate = () => {
-    try {
-      let calculation = input;
-      calculation = calculation.replace(/sin\(/g, 'Math.sin(');
-      calculation = calculation.replace(/cos\(/g, 'Math.cos(');
-      calculation = calculation.replace(/tan\(/g, 'Math.tan(');
-      calculation = calculation.replace(/log\(/g, 'Math.log10(');
-      calculation = calculation.replace(/√\(/g, 'Math.sqrt(');
-      calculation = calculation.replace(/\^/g, '**');
-
-      setResult(eval(calculation).toString());
-    } catch (error) {
-      setResult("Error");
-    }
-  };
-
-  const handleSciFunction = (func) => {
-    if (func === 'pi') {
-      handleClick(Math.PI.toString());
-    } else if (func === 'e') {
-      handleClick(Math.E.toString());
-    } else {
-      handleClick(func + "(");
-    }
-  };
-
-  return (
-    <div className="app-container">
-      <div className="animated-background"></div>
-      
-      <div className="calculator-box">
-        <h1 className="calc-heading">SCIENTIFIC CALCULATOR</h1>
-        
-        <div className="screen-container">
-          <div className="input-line">{input || "0"}</div>
-          <div className="result-line">{result || "0"}</div>
-        </div>
-
-        <div className="grid-layout">
-          {/* Row 1 */}
-          <button onClick={() => handleSciFunction('sin')} className="btn-key sci-key">sin</button>
-          <button onClick={() => handleSciFunction('cos')} className="btn-key sci-key">cos</button>
-          <button onClick={() => handleSciFunction('tan')} className="btn-key sci-key">tan</button>
-          <button onClick={handleClear} className="btn-key clear-key">C</button>
-          <button onClick={() => handleClick("/")} className="btn-key op-key">÷</button>
-
-          {/* Row 2 */}
-          <button onClick={() => handleSciFunction('log')} className="btn-key sci-key">log</button>
-          <button onClick={() => handleClick("7")} className="btn-key num-key">7</button>
-          <button onClick={() => handleClick("8")} className="btn-key num-key">8</button>
-          <button onClick={() => handleClick("9")} className="btn-key num-key">9</button>
-          <button onClick={() => handleClick("*")} className="btn-key op-key">×</button>
-
-          {/* Row 3 */}
-          <button onClick={() => handleSciFunction('√')} className="btn-key sci-key">√</button>
-          <button onClick={() => handleClick("4")} className="btn-key num-key">4</button>
-          <button onClick={() => handleClick("5")} className="btn-key num-key">5</button>
-          <button onClick={() => handleClick("6")} className="btn-key num-key">6</button>
-          <button onClick={() => handleClick("-")} className="btn-key op-key">−</button>
-
-          {/* Row 4 */}
-          <button onClick={() => handleClick('^')} className="btn-key sci-key">x<sup>y</sup></button>
-          <button onClick={() => handleClick("1")} className="btn-key num-key">1</button>
-          <button onClick={() => handleClick("2")} className="btn-key num-key">2</button>
-          <button onClick={() => handleClick("3")} className="btn-key num-key">3</button>
-          <button onClick={() => handleClick("+")} className="btn-key op-key">+</button>
-
-          {/* Row 5 */}
-          <button onClick={() => handleSciFunction('pi')} className="btn-key sci-key">π</button>
-          <button onClick={() => handleSciFunction('e')} className="btn-key sci-key">e</button>
-          <button onClick={() => handleClick("0")} className="btn-key num-key">0</button>
-          <button onClick={() => handleClick(".")} className="btn-key num-key">.</button>
-          <button onClick={handleCalculate} className="btn-key equal-key">=</button>
-        </div>
-      </div>
-    </div>
-  );
+function formatResult(value) {
+  if (!Number.isFinite(value)) throw new Error('Undefined')
+  return Number(value.toPrecision(12)).toString()
 }
 
-const sheet = document.createElement('style');
-sheet.innerHTML = `
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'Poppins', system-ui, sans-serif; }
+function evaluate(expression, angleMode) {
+  let formula = expression.replaceAll('π', 'PI').replaceAll('×', '*').replaceAll('÷', '/')
+  formula = formula.replace(/(\d|\)|PI|E)(?=(PI|E|\d|\())/g, '$1*')
+  formula = formula.replace(/(\d+(?:\.\d+)?)%/g, '($1/100)')
+  formula = formula.replace(/\^/g, '**')
+  if (!/^[0-9+\-*/().,\sA-Za-z_*]+$/.test(formula)) throw new Error('Invalid input')
+  const toAngle = angleMode === 'DEG' ? '(x * Math.PI / 180)' : 'x'
+  const fn = new Function('PI', 'E', `const sin=x=>Math.sin(${toAngle}); const cos=x=>Math.cos(${toAngle}); const tan=x=>Math.tan(${toAngle}); const log=x=>Math.log10(x); const ln=x=>Math.log(x); const sqrt=x=>Math.sqrt(x); return (${formula})`)
+  return formatResult(fn(Math.PI, Math.E))
+}
 
-  .app-container {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    display: flex; justify-content: center; align-items: center; overflow: hidden;
+function App() {
+  const [expression, setExpression] = useState('')
+  const [result, setResult] = useState('0')
+  const [angleMode, setAngleMode] = useState('DEG')
+  const [history, setHistory] = useState([])
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [error, setError] = useState('')
+
+  const calculate = useCallback(() => {
+    if (!expression) return
+    try {
+      const value = evaluate(expression, angleMode)
+      setResult(value)
+      setHistory((items) => [{ expression, result: value, mode: angleMode }, ...items].slice(0, 8))
+      setError('')
+    } catch {
+      setResult('Error')
+      setError('Check your expression')
+    }
+  }, [angleMode, expression])
+
+  const addInput = (value) => {
+    setExpression((current) => current + value)
+    setResult('0')
+    setError('')
   }
+  const clear = () => { setExpression(''); setResult('0'); setError('') }
+  const backspace = () => { setExpression((current) => current.slice(0, -1)); setResult('0') }
 
-  .animated-background {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(135deg, #0f172a, #1e1b4b, #311042, #0f172a);
-    background-size: 400% 400%; z-index: -2;
-    animation: moveBg 12s ease infinite;
-  }
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (/^[0-9.]$/.test(event.key) || ['+', '-', '*', '/', '(', ')', '%', '^'].includes(event.key)) { event.preventDefault(); addInput(event.key) }
+      if (event.key === 'Enter' && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); calculate() }
+      if (event.key === 'Backspace') { event.preventDefault(); backspace() }
+      if (event.key === 'Escape') clear()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
 
-  @keyframes moveBg {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
+  const displayExpression = useMemo(() => expression || 'Ready for input', [expression])
 
-  .calculator-box {
-    width: 100%; max-width: 400px;
-    background: rgba(25, 35, 55, 0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-    border-radius: 24px; padding: 28px;
-    box-sizing: border-box;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.12); z-index: 1;
-  }
+  return (
+    <main className="app-shell">
+      <div className="ambient ambient-one" />
+      <div className="ambient ambient-two" />
+      <section className="calculator-card" aria-label="Scientific calculator">
+        <header className="app-header">
+          <div className="brand-lockup"><span className="brand-mark"><Calculator /></span><div><p className="eyebrow">NOVA LABS</p><h1>Scientific Calculator</h1></div></div>
+          <div className="header-actions"><button className="icon-button" aria-label="Keyboard shortcuts"><Keyboard /></button><button className="icon-button" aria-label="Toggle theme"><Moon /></button></div>
+        </header>
 
-  .calc-heading {
-    font-size: 1.6rem; font-weight: 800; color: #ffffff; margin-bottom: 22px;
-    text-align: center; letter-spacing: 1.5px;
-    background: linear-gradient(to right, #00ffcc, #00bcff);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
+        <div className="workspace">
+          <div className="calculator-main">
+            <div className="display-panel">
+              <div className="display-meta"><span>CALCULATION</span><span className="live-indicator"><i /> LIVE</span></div>
+              <div className="expression-line">{displayExpression}</div>
+              <div className={`result-line ${error ? 'has-error' : ''}`}>{result}</div>
+              {error && <p className="error-line">{error}</p>}
+              <div className="display-footer"><span>Precision: 12 digits</span><span>{angleMode} mode</span></div>
+            </div>
 
-  .screen-container {
-    background: rgba(10, 15, 26, 0.85); border-radius: 16px;
-    height: 110px; display: flex; flex-direction: column;
-    justify-content: center; align-items: flex-end; padding: 15px 22px;
-    margin-bottom: 22px; border: 1px solid rgba(255, 255, 255, 0.06);
-    box-sizing: border-box;
-  }
+            <div className="toolbar"><div className="angle-switch" role="group" aria-label="Angle mode"><button className={angleMode === 'DEG' ? 'active' : ''} onClick={() => setAngleMode('DEG')}>DEG</button><button className={angleMode === 'RAD' ? 'active' : ''} onClick={() => setAngleMode('RAD')}>RAD</button></div><span className="shortcut-hint"><Keyboard /> Keyboard enabled</span></div>
 
-  .input-line { color: rgba(255, 255, 255, 0.45); font-size: 1.1rem; overflow-x: auto; max-width: 100%; white-space: nowrap; }
-  .result-line { color: #00ffcc; font-size: 2.6rem; font-weight: bold; overflow-x: auto; max-width: 100%; white-space: nowrap; text-shadow: 0 0 12px rgba(0,255,204,0.25); }
+            <div className="keypad">
+              <div className="utility-row"><button className="key key-clear" onClick={clear}><span>AC</span><small>clear all</small></button><button className="key key-delete" onClick={backspace} aria-label="Backspace"><Delete /></button><button className="key key-delete" onClick={() => setExpression((current) => current.slice(0, -1))} aria-label="Delete"><Delete /></button><button className="key key-history" onClick={() => setHistoryOpen(true)}><History /> <span>History</span></button></div>
+              <div className="keys-grid">{initialKeys.map((key) => <button key={key.label} className={`key key-${key.kind}`} onClick={() => addInput(key.value)}>{key.label}</button>)}<button className="key key-equals" onClick={calculate}>=</button></div>
+            </div>
+          </div>
+          <aside className="tip-card"><div className="tip-icon"><Sparkles /></div><div><p className="eyebrow">QUICK TIP</p><p>Use parentheses to keep complex expressions clear and accurate.</p></div></aside>
+        </div>
+        <footer className="app-footer"><span><span className="status-dot" /> System ready</span><span>v2.6.0 · Built for precision</span></footer>
+      </section>
+      {historyOpen && <div className="drawer-backdrop" onClick={() => setHistoryOpen(false)}><aside className="history-drawer" onClick={(event) => event.stopPropagation()}><div className="drawer-header"><div><p className="eyebrow">ARCHIVE</p><h2>Calculation history</h2></div><button className="icon-button" onClick={() => setHistoryOpen(false)} aria-label="Close history"><X /></button></div>{history.length ? history.map((item, index) => <button className="history-item" key={`${item.expression}-${index}`} onClick={() => { setExpression(item.expression); setResult(item.result); setHistoryOpen(false) }}><span><Clock3 />{item.expression}<small>{item.mode}</small></span><strong>{item.result}</strong></button>) : <div className="empty-history"><History /><p>No calculations yet</p><small>Your completed calculations will appear here.</small></div>} {history.length > 0 && <button className="clear-history" onClick={() => setHistory([])}>Clear history</button>}</aside></div>}
+    </main>
+  )
+}
 
-  .grid-layout { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
-
-  /* بٹنز کی پرفیکٹ سینٹرنگ */
-  .btn-key {
-    height: 56px; font-size: 1.2rem; font-weight: 600; border: none;
-    border-radius: 12px; cursor: pointer; transition: all 0.2s ease;
-    display: flex; justify-content: center; align-items: center; text-align: center;
-    line-height: 1; padding: 0;
-  }
-
-  .num-key { background: #ffffff; color: #0f172a; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-  .sci-key { background: rgba(255, 255, 255, 0.08); color: #00ffcc; border: 1px solid rgba(0,255,204,0.05); font-size: 1.05rem; }
-  .op-key { background: #f59e0b; color: white; font-size: 1.5rem; }
-  .clear-key { background: #ef4444; color: white; }
-  .equal-key { background: #10b981; color: white; font-size: 1.5rem; }
-
-  .btn-key:hover { filter: brightness(120%); transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.2); }
-  .btn-key:active { transform: translateY(0); }
-`;
-document.body.appendChild(sheet);
-
-export default App;
+export default App
